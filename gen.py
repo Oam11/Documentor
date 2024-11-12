@@ -77,22 +77,18 @@ if uploaded_file is not None:
                                 edges.append(("Global", target.id))  # Add connection to Global node
 
                 # Create Graphviz DOT format code for the flowchart
+                # Adjust size directly in the Graphviz DOT format code
                 graphviz_code = "digraph G {\n"
+                graphviz_code += '    size="8,6";\n'  # Adjust size as needed
                 for node in nodes:
                     graphviz_code += f'    "{node}" [shape=box];\n'
-
                 for edge in edges:
                     graphviz_code += f'    "{edge[0]}" -> "{edge[1]}";\n'
-
                 graphviz_code += "}\n"
-
-                # Display Graphviz code in Streamlit (for debugging)
-                st.subheader("Generated Graphviz Code for Data Flow")
-                st.code(graphviz_code, language='text')
-
-                # Render the Data Flow Chart using st.graphviz_chart
+                
+                # Render the Data Flow Chart
                 st.subheader("Data Flow Chart")
-                st.graphviz_chart(graphviz_code, width=800, height=600)
+                st.graphviz_chart(graphviz_code)
 
                 # Custom prompt for Groq documentation generation
                 custom_prompt = (
