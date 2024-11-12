@@ -79,7 +79,7 @@ if uploaded_file is not None:
                 # Create Graphviz DOT format code for the flowchart
                 # Adjust size directly in the Graphviz DOT format code
                 graphviz_code = "digraph G {\n"
-                graphviz_code += '    size="24,16";\n'  # Adjust size as needed
+                graphviz_code += '    size="24,160";\n'  # Adjust size as needed
                 for node in nodes:
                     graphviz_code += f'    "{node}" [shape=box];\n'
                 for edge in edges:
