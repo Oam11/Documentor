@@ -92,7 +92,7 @@ if uploaded_file is not None:
 
                 # Render the Data Flow Chart using st.graphviz_chart
                 st.subheader("Data Flow Chart")
-                st.graphviz_chart(graphviz_code)
+                st.graphviz_chart(graphviz_code, width=800, height=600)
 
                 # Custom prompt for Groq documentation generation
                 custom_prompt = (
