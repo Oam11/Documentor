@@ -1,14 +1,17 @@
 import os
-import streamlit as st
-from groq import Groq
 import zipfile
 import tempfile
+import streamlit as st
+from groq import Groq
+import ast
 
 # Load the API key from secrets.toml
 api_key = st.secrets["groq_api"]["api_key"]
 client = Groq(api_key=api_key)
 
-st.title("AI Code Documentation System")
+# Set up the Streamlit app
+st.title("AI Code Documentation and Data Flow Generator")
+st.markdown("Upload a ZIP file containing your Python code to generate comprehensive documentation and visualize data flow.")
 
 # Upload ZIP file
 uploaded_file = st.file_uploader("Upload a ZIP file containing your code", type="zip")
@@ -24,7 +27,7 @@ if uploaded_file is not None:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(tmp_dir)
 
-        # List all the Python files in the extracted folder, including subdirectories
+        # List all Python files in the extracted folder, including subdirectories
         python_files = []
         for root, dirs, files in os.walk(tmp_dir):
             for file in files:
@@ -43,9 +46,57 @@ if uploaded_file is not None:
                 with open(main_file_path, 'r') as code_file:
                     code_content = code_file.read()
 
-                # Input for custom prompt
-                custom_prompt =(
-'''Objective:
+                # Generate Data Flow Chart using AST
+                tree = ast.parse(code_content)
+
+                # Create a list of nodes and edges for the flowchart
+                nodes = ['Global']  # Add Global as the starting point
+                edges = []
+                node_ids = {'Global': 0}
+
+                def add_node(node_name):
+                    if node_name not in node_ids:
+                        node_ids[node_name] = len(nodes)
+                        nodes.append(node_name)
+
+                # Identify function and variable assignments, then add them to the graph
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.FunctionDef):  # Detect function definitions
+                        add_node(node.name)
+                        for n in node.body:
+                            if isinstance(n, ast.Assign):  # Detect variable assignments
+                                for target in n.targets:
+                                    if isinstance(target, ast.Name):
+                                        add_node(target.id)
+                                        edges.append((node.name, target.id))
+
+                    if isinstance(node, ast.Assign):  # Detect variable assignments outside functions
+                        for target in node.targets:
+                            if isinstance(target, ast.Name):
+                                add_node(target.id)
+                                edges.append(("Global", target.id))  # Add connection to Global node
+
+                # Create Graphviz DOT format code for the flowchart
+                graphviz_code = "digraph G {\n"
+                for node in nodes:
+                    graphviz_code += f'    "{node}" [shape=box];\n'
+
+                for edge in edges:
+                    graphviz_code += f'    "{edge[0]}" -> "{edge[1]}";\n'
+
+                graphviz_code += "}\n"
+
+                # Display Graphviz code in Streamlit (for debugging)
+                st.subheader("Generated Graphviz Code for Data Flow")
+                st.code(graphviz_code, language='text')
+
+                # Render the Data Flow Chart using st.graphviz_chart
+                st.subheader("Data Flow Chart")
+                st.graphviz_chart(graphviz_code)
+
+                # Custom prompt for Groq documentation generation
+                custom_prompt = (
+                    '''Objective:
 Generate detailed and structured documentation for Python code. The documentation should enhance code understanding and usability, targeting developers and end-users. It must include the following elements:
 
 Documentation Requirements:
@@ -116,18 +167,31 @@ Guidelines for Generated Documentation:
 Follow Python docstring conventions (PEP 257).
 Ensure clarity and readability.
 Include practical insights to assist users in leveraging the code effectively.'''
-                                        )
+                )
 
                 # Call Groq API to generate documentation
                 try:
                     response = client.chat.completions.create(
-                        messages=[{"role": "user", "content": f"{custom_prompt}\n{code_content}"}],
+                        messages=[{"role": "user", "content": f"{custom_prompt}\n\n{code_content}"}],
                         model="llama-3.2-1b-preview"  # Ensure you're using the correct model version
                     )
                     st.success("Documentation Generated Successfully!")
-                    st.write(response.choices[0].message.content)
+                    doc_content = response.choices[0].message.content
+                    st.write(doc_content)
+
+                    # Add a download button for the Markdown file
+                    md_filename = "generated_documentation.md"
+                    st.download_button(
+                        label="Download Documentation as MD",
+                        data=doc_content,
+                        file_name=md_filename,
+                        mime="text/markdown"
+                    )
 
                 except Exception as e:
-                    st.error(f"An error occurred: {str(e)}")
+                    st.error(f"An error occurred while generating documentation: {str(e)}")
+
         else:
             st.warning("No Python files found in the uploaded ZIP file.")
+else:
+    st.info("Please upload a ZIP file to proceed.")
