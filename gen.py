@@ -45,47 +45,77 @@ if uploaded_file is not None:
 
                 # Input for custom prompt
                 custom_prompt =(
-'''Generate detailed documentation for the following code in English. The documentation should include the following elements:
+'''Objective:
+Generate detailed and structured documentation for Python code. The documentation should enhance code understanding and usability, targeting developers and end-users. It must include the following elements:
 
-1. Inline Comments
-Provide clear and concise comments throughout the code.
-Explain the purpose and logic of each line or block.
-Highlight important considerations, such as performance implications, edge cases, or assumptions.
-2. Function Documentation
-For each function in the code, include:
+Documentation Requirements:
+Function/Module Description
+Provide a detailed overview of the function or module, explaining its purpose, goals, and significance.
+Example:
+"[Function/Module Name] is designed to [achieve specific tasks or solve problems]. It simplifies [key processes] and aims to provide an efficient, reliable, and user-friendly solution for [target domain or audience]."
 
-Description: A concise explanation of what the function does.
-Parameters:
-List each parameter, specifying its name, type, and purpose.
-Return Type:
-Specify the return type and describe what the returned value represents.
-Exceptions:
-Mention any exceptions that the function might raise, including the conditions that trigger them.
-Side Effects:
-Note any changes the function makes to external states, like modifying global variables or I/O operations.
-Example Usage:
-Provide sample code demonstrating how to use the function, including expected input and output.
-3. Class Documentation (if applicable)
-For each class in the code, include:
+Main Features
+Highlight the key features or capabilities:
 
-Description: Briefly describe the class and its purpose.
-Attributes:
-Document each class attribute, specifying its type and purpose.
-Methods:
-List and document all methods within the class, following the function documentation format.
-Example Usage:
-Show how to instantiate and use the class.
-4. Module-Level Documentation
-Provide an overview of the module’s purpose and functionality.
-Highlight how different functions, classes, or components within the module interact.
-5. Best Practices and Optimization Notes
-Include tips for using the code efficiently.
-Mention any known limitations or potential improvements.
-6. Testing Information
-Outline how the code can be tested.
-Mention any test cases or frameworks used, and provide examples if possible.
-7. Additional Notes
-Include any relevant information that enhances understanding, such as dependencies, related modules, or design decisions.'''
+Core functionalities.
+Advanced or unique features.
+Benefits or enhancements over alternatives.
+Parameters
+List and describe all parameters:
+
+Name: Parameter name.
+Type: Data type.
+Purpose: What it does and why it’s needed.
+Attributes (for classes)
+Document all class attributes:
+
+Name: Attribute name.
+Type: Data type.
+Purpose: Why it exists and how it is used.
+Methods (for classes)
+List and document each method, including:
+
+Purpose of the method.
+Parameters.
+Return type.
+Exceptions (if any).
+Returns
+Specify the return type and explain the value returned:
+
+What the return value represents.
+Why it’s significant.
+Example Usage
+Provide clear and concise examples of how the function or class is used:
+
+Input format.
+Expected output.
+Use cases for practical scenarios.
+Inherited Members (for classes)
+Include any inherited attributes or methods:
+
+Explain how inherited components enhance functionality.
+List relevant parent classes.
+Side Effects
+Highlight any side effects of the code:
+
+Changes to external states (e.g., file systems, global variables).
+Impacts on performance or environment.
+Inline and Function Comments
+Ensure the code itself is well-documented with:
+
+Inline Comments: Explain complex logic, critical decisions, or non-obvious operations.
+Function Comments: At the start of each function, summarize its purpose, assumptions, and considerations.
+Class Documentation (if applicable)
+For any class, include:
+
+Purpose: What the class represents.
+Attributes: Detailed list of class variables.
+Methods: Overview of methods with brief descriptions.
+Usage Example: Show how to create and use the class.
+Guidelines for Generated Documentation:
+Follow Python docstring conventions (PEP 257).
+Ensure clarity and readability.
+Include practical insights to assist users in leveraging the code effectively.'''
                                         )
 
                 # Call Groq API to generate documentation
