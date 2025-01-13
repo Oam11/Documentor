@@ -3,7 +3,6 @@ import zipfile
 import tempfile
 import streamlit as st
 from groq import Groq
-import ast
 
 # Load the API key from secrets.toml
 api_key = st.secrets["groq_api"]["api_key"]
@@ -11,7 +10,7 @@ client = Groq(api_key=api_key)
 
 # Set up the Streamlit app
 st.title("AI Code Documentation and Data Flow Generator")
-st.markdown("Upload a ZIP file containing your Python code to generate comprehensive documentation and visualize data flow.")
+st.markdown("Upload a ZIP file containing your code to generate comprehensive documentation for each file.")
 
 # Upload ZIP file
 uploaded_file = st.file_uploader("Upload a ZIP file containing your code", type="zip")
@@ -23,76 +22,22 @@ if uploaded_file is not None:
         with open(zip_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         
-        # Use zipfile to open and extract the contents of the ZIP file
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(tmp_dir)
 
-        # List all Python files in the extracted folder, including subdirectories
-        python_files = []
+        # List all files in the extracted folder, including subdirectories
+        all_files = []
         for root, dirs, files in os.walk(tmp_dir):
             for file in files:
-                if file.endswith('.py'):
-                    # Add the relative path of the Python file to the list
-                    python_files.append(os.path.relpath(os.path.join(root, file), tmp_dir))
+                all_files.append(os.path.relpath(os.path.join(root, file), tmp_dir))
 
-        # Check if there are Python files to select
-        if python_files:
-            main_file = st.selectbox("Select the main file", python_files)
+        if all_files:
+            # Initialize combined documentation
+            combined_doc = ""
 
-            # Ensure that a main file is selected
-            if main_file:
-                # Read the content of the main file
-                main_file_path = os.path.join(tmp_dir, main_file)
-                with open(main_file_path, 'r') as code_file:
-                    code_content = code_file.read()
-
-                # Generate Data Flow Chart using AST
-                tree = ast.parse(code_content)
-
-                # Create a list of nodes and edges for the flowchart
-                nodes = ['Global']  # Add Global as the starting point
-                edges = []
-                node_ids = {'Global': 0}
-
-                def add_node(node_name):
-                    if node_name not in node_ids:
-                        node_ids[node_name] = len(nodes)
-                        nodes.append(node_name)
-
-                # Identify function and variable assignments, then add them to the graph
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.FunctionDef):  # Detect function definitions
-                        add_node(node.name)
-                        for n in node.body:
-                            if isinstance(n, ast.Assign):  # Detect variable assignments
-                                for target in n.targets:
-                                    if isinstance(target, ast.Name):
-                                        add_node(target.id)
-                                        edges.append((node.name, target.id))
-
-                    if isinstance(node, ast.Assign):  # Detect variable assignments outside functions
-                        for target in node.targets:
-                            if isinstance(target, ast.Name):
-                                add_node(target.id)
-                                edges.append(("Global", target.id))  # Add connection to Global node
-
-                # Create Graphviz DOT format code for the flowchart
-                # Adjust size directly in the Graphviz DOT format code
-                graphviz_code = "digraph G {\n"
-                graphviz_code += '    size="24,160";\n'  # Adjust size as needed
-                for node in nodes:
-                    graphviz_code += f'    "{node}" [shape=box];\n'
-                for edge in edges:
-                    graphviz_code += f'    "{edge[0]}" -> "{edge[1]}";\n'
-                graphviz_code += "}\n"
-                
-                # Render the Data Flow Chart
-                st.subheader("Data Flow Chart")
-                st.graphviz_chart(graphviz_code)
-
-                # Custom prompt for Groq documentation generation
-                custom_prompt = (
-                    '''Objective:
+            # Define the old prompt
+            custom_prompt = '''
+Objective:
 Generate detailed and structured documentation for Python code. The documentation should enhance code understanding and usability, targeting developers and end-users. It must include the following elements:
 
 Documentation Requirements:
@@ -162,32 +107,45 @@ Usage Example: Show how to create and use the class.
 Guidelines for Generated Documentation:
 Follow Python docstring conventions (PEP 257).
 Ensure clarity and readability.
-Include practical insights to assist users in leveraging the code effectively.'''
-                )
+Include practical insights to assist users in leveraging the code effectively.
+'''
 
-                # Call Groq API to generate documentation
+            for file in all_files:
+                file_path = os.path.join(tmp_dir, file)
+                _, file_extension = os.path.splitext(file)
+
+                # Read file content
+                with open(file_path, 'r', encoding="utf-8", errors="ignore") as f:
+                    file_content = f.read()
+
+                # Combine the custom prompt with the file content
+                full_prompt = f"{custom_prompt}\n\n{file_content}"
+
                 try:
                     response = client.chat.completions.create(
-                        messages=[{"role": "user", "content": f"{custom_prompt}\n\n{code_content}"}],
-                        model="llama-3.2-1b-preview"  # Ensure you're using the correct model version
+                        messages=[{"role": "user", "content": full_prompt}],
+                        model="llama3-8b-8192"
                     )
-                    st.success("Documentation Generated Successfully!")
                     doc_content = response.choices[0].message.content
-                    st.write(doc_content)
 
-                    # Add a download button for the Markdown file
-                    md_filename = "generated_documentation.md"
-                    st.download_button(
-                        label="Download Documentation as MD",
-                        data=doc_content,
-                        file_name=md_filename,
-                        mime="text/markdown"
-                    )
+                    # Append to combined documentation
+                    combined_doc += f"# Documentation for {file}\n\n{doc_content}\n\n"
+
+                    st.success(f"Documentation generated for {file}!")
 
                 except Exception as e:
-                    st.error(f"An error occurred while generating documentation: {str(e)}")
+                    st.error(f"An error occurred with {file}: {str(e)}")
 
+            # Provide combined documentation for download
+            if combined_doc:
+                combined_md_filename = "combined_documentation.md"
+                st.download_button(
+                    label="Download Combined Documentation",
+                    data=combined_doc,
+                    file_name=combined_md_filename,
+                    mime="text/markdown"
+                )
         else:
-            st.warning("No Python files found in the uploaded ZIP file.")
+            st.warning("No files found in the uploaded ZIP.")
 else:
     st.info("Please upload a ZIP file to proceed.")
