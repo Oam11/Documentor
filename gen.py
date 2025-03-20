@@ -124,7 +124,7 @@ Include practical insights to assist users in leveraging the code effectively.
                 try:
                     response = client.chat.completions.create(
                         messages=[{"role": "user", "content": full_prompt}],
-                        model="deepseek-r1-distill-llama-70b"
+                        model="llama-3.3-70b-versatile"
                     )
                     doc_content = response.choices[0].message.content
 
